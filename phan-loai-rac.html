@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>EcoSort</title>
+<style>
+:root{--bg:#000;--card:#121212;--line:#262626;--tx:#f5f5f5;--mu:#8a8a8a;--organic:#8fbf8f;--recycle:#8fb2d9;--other:#c4c4c4;--unknown:#c4c4c4;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--tx);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;max-width:520px;margin:auto}
+header{display:flex;justify-content:space-between;align-items:center;padding:14px 20px}
+.brand{font:600 22px Georgia,"Times New Roman",serif;letter-spacing:.02em}
+button{font:inherit;color:inherit;background:none;border:1px solid var(--line);border-radius:999px;padding:9px 18px;cursor:pointer}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--tx);outline-offset:2px}
+button.pri{background:var(--tx);color:var(--bg);border-color:var(--tx);font-weight:600}
+button:disabled{opacity:.4}
+main{flex:1;overflow-y:auto;padding:0 20px 20px}
+.pg{display:none}.pg.on{display:block}
+.mu{color:var(--mu)}
+.seg{display:flex;border:1px solid var(--line);border-radius:999px;padding:3px;margin-bottom:12px}
+.seg button{flex:1;border:0;padding:7px}
+.seg button.on{background:var(--tx);color:var(--bg);font-weight:600}
+.frame{position:relative;aspect-ratio:3/4;background:var(--card);border-radius:20px;overflow:hidden}
+.frame video,.frame img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.frame .ov{position:absolute;inset:0;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;text-align:center;padding:24px}
+.acts{display:flex;gap:10px;margin:12px 0}
+.acts .pri{flex:1}
+.card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:12px}
+.row{display:flex;align-items:center;gap:10px}
+.dot{width:12px;height:12px;border-radius:50%;flex:none}
+.big{font:600 28px/1.2 Georgia,"Times New Roman",serif}
+.tag{font-size:12px;border:1px solid var(--mu);border-radius:6px;padding:0 6px;color:var(--mu);font-style:normal}
+.gd{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+details{border:1px solid var(--line);border-radius:16px;padding:12px 16px}
+summary{cursor:pointer}
+details input[type=text]{width:100%;margin:12px 0 8px;background:var(--card);border:1px solid var(--line);border-radius:10px;color:var(--tx);padding:10px;font:inherit}
+details label{display:flex;gap:8px;align-items:center;margin-top:12px}
+.hi{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.hi img{width:56px;height:56px;border-radius:10px;object-fit:cover;flex:none}
+.hi div{flex:1;min-width:0}
+.bar{height:6px;background:var(--line);border-radius:3px;margin:6px 0 14px;overflow:hidden}
+.bar i{display:block;height:100%}
+.num{font:600 44px/1 Georgia,"Times New Roman",serif}
+nav{display:flex;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{flex:1;border:0;border-radius:0;padding:14px 0;color:var(--mu)}
+nav button.on{color:var(--tx);font-weight:600}
+#toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:8px 16px;border-radius:999px;font-weight:600}
+</style>
+</head>
+<body>
+<header><span class="brand">EcoSort</span><button id="lang">EN</button></header>
+<main>
+<section class="pg on" id="p-scan">
+  <div class="seg"><button data-m="live" data-i="live"></button><button data-m="snap" data-i="snap"></button></div>
+  <div class="frame">
+    <video id="vid" playsinline muted></video>
+    <img id="fr" alt="" hidden>
+    <div class="ov" id="start"><p class="mu" id="msg"></p><button class="pri" id="cam" data-i="start"></button></div>
+  </div>
+  <div class="acts">
+    <button class="pri" id="main"></button>
+    <button id="up" data-i="upload"></button>
+    <input type="file" id="file" accept="image/*" hidden>
+  </div>
+  <div class="card" id="res"></div>
+  <details>
+    <summary data-i="model"></summary>
+    <input type="text" id="url" inputmode="url" autocomplete="off">
+    <button id="load" data-i="load"></button>
+    <p class="mu" id="ms"></p>
+    <label><input type="checkbox" id="demo"><span data-i="demo"></span></label>
+  </details>
+</section>
+<section class="pg" id="p-hist">
+  <div id="hl"></div>
+  <button id="clr" data-i="clear" style="margin-top:16px"></button>
+</section>
+<section class="pg" id="p-stats"><div id="sl"></div></section>
+</main>
+<nav>
+  <button class="on" data-p="scan" data-i="scan"></button>
+  <button data-p="hist" data-i="hist"></button>
+  <button data-p="stats" data-i="stats"></button>
+</nav>
+<div id="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.5/dist/teachablemachine-image.min.js"></script>
+<script>
+// Dán link mô hình Teachable Machine vào đây (hoặc dán trong ứng dụng, mục "Mô hình").
+// Ví dụ: "https://teachablemachine.withgoogle.com/models/XXXXXXX/"
+const MODEL_URL = "";
+// Dưới ngưỡng này, web báo "chưa chắc chắn".
+const THRESHOLD = 0.30;
+
+const L = {
+ vi:{scan:"Phân loại",hist:"Lịch sử",stats:"Thống kê",live:"Trực tiếp",snap:"Chụp ảnh",start:"Bật camera",upload:"Tải ảnh lên",
+  capture:"Chụp",retake:"Chụp lại",save:"Lưu kết quả",idle:"Hướng camera vào món rác để bắt đầu.",unsure:"Chưa chắc chắn, hãy thử lại.",
+  conf:"Độ tin cậy",guide:"Hướng dẫn xử lý",organic:"Hữu cơ",recycle:"Tái chế",other:"Còn lại",unknown:"Không xác định",
+  model:"Mô hình Teachable Machine",url:"Dán link mô hình",load:"Tải mô hình",demo:"Chế độ dùng thử (kết quả giả)",
+  nomodel:"Chưa có mô hình. Hãy dán link mô hình hoặc bật chế độ dùng thử.",loaded:"Đã tải mô hình",loading:"Đang tải...",err:"Lỗi",
+  cam:"Không mở được camera",empty:"Chưa có lịch sử.",clear:"Xóa lịch sử",total:"Lượt phân loại",avg:"Độ tin cậy trung bình",
+  note:"Kết quả dùng thử không được tính.",fake:"Dùng thử",saved:"Đã lưu",
+  g_organic:"Bỏ vào thùng rác hữu cơ: thức ăn thừa, vỏ rau củ quả, lá cây. Tách khỏi túi nilon và vật liệu khác. Có thể ủ làm phân compost.",
+  g_recycle:"Làm sạch và để khô trước khi bỏ vào thùng tái chế: giấy, nhựa, kim loại, thủy tinh. Tháo nắp, ép dẹp chai lon để tiết kiệm chỗ.",
+  g_other:"Bỏ vào thùng rác còn lại: túi nilon bẩn, đồ gốm sứ vỡ, giấy dính dầu mỡ. Pin, bóng đèn, đồ điện tử và thuốc hết hạn nên mang đến điểm thu gom riêng."},
+ en:{scan:"Sort",hist:"History",stats:"Stats",live:"Live",snap:"Snapshot",start:"Turn on camera",upload:"Upload photo",
+  capture:"Capture",retake:"Retake",save:"Save result",idle:"Point the camera at an item to begin.",unsure:"Not sure yet, please try again.",
+  conf:"Confidence",guide:"How to dispose",organic:"Organic",recycle:"Recyclable",other:"General waste",unknown:"Unknown",
+  model:"Teachable Machine model",url:"Paste model link",load:"Load model",demo:"Demo mode (fake results)",
+  nomodel:"No model yet. Paste a model link or turn on demo mode.",loaded:"Model loaded",loading:"Loading...",err:"Error",
+  cam:"Cannot open the camera",empty:"No history yet.",clear:"Clear history",total:"Items sorted",avg:"Average confidence",
+  note:"Demo results are not counted.",fake:"Demo",saved:"Saved",
+  g_organic:"Put in the organic bin: food scraps, fruit and vegetable peels, leaves. Keep it apart from plastic bags and other materials. It can be composted.",
+  g_recycle:"Clean and dry it before putting it in the recycling bin: paper, plastic, metal, glass. Remove caps and flatten bottles and cans to save space.",
+  g_other:"Put in the general waste bin: dirty plastic bags, broken ceramics, greasy paper. Batteries, bulbs, electronics and expired medicine belong at a separate collection point."}
+};
+const store={get(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let lang=store.get("lang","vi"), model=null, stream=null, mode="live", frozen=false, liveOn=false, looping=false, last=null, demo=false;
+const vid=$("#vid"), fr=$("#fr");
+const t=k=>L[lang][k];
+
+const norm=s=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").toLowerCase();
+function cat(n){n=norm(n);
+ if(/huu co|organic/.test(n))return"organic";
+ if(/tai che|recycl/.test(n))return"recycle";
+ if(/con lai|other|general|residual/.test(n))return"other";
+ return"unknown";}
+
+function applyLang(){
+ document.documentElement.lang=lang;
+ $$("[data-i]").forEach(e=>e.textContent=t(e.dataset.i));
+ $("#lang").textContent=lang==="vi"?"EN":"VI";
+ $("#url").placeholder=t("url");
+ setMain();showResult(last);renderHist();renderStats();
+}
+function setMain(){
+ const b=$("#main");
+ b.textContent=frozen?t("retake"):(mode==="live"?t("save"):t("capture"));
+}
+function toast(m){const e=$("#toast");e.textContent=m;e.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>e.hidden=true,1400)}
+
+/* Camera */
+async function startCam(){
+ try{
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:640}},audio:false});
+  vid.srcObject=stream;await vid.play();$("#start").hidden=true;go();
+ }catch(e){$("#msg").textContent=t("cam")+": "+e.message}
+}
+function setMode(m){
+ mode=m;unfreeze();
+ $$(".seg button").forEach(b=>b.classList.toggle("on",b.dataset.m===m));
+ go();setMain();
+}
+function go(){liveOn=mode==="live"&&!!stream&&!frozen;if(liveOn)loop()}
+async function loop(){
+ if(looping)return;looping=true;
+ while(liveOn){
+  const r=await predict(vid);
+  if(!liveOn)break;
+  last=r;showResult(r);
+  await new Promise(x=>setTimeout(x,demo?1200:250));
+ }
+ looping=false;
+}
+function freeze(src){fr.src=src;fr.hidden=false;frozen=true;liveOn=false;setMain()}
+function unfreeze(){fr.hidden=true;frozen=false;go();setMain()}
+
+/* Dự đoán */
+async function predict(el){
+ if(demo){const c=["organic","recycle","other"][Math.floor(Math.random()*3)];return{c,n:t(c),p:.5+Math.random()*.45,d:true}}
+ if(!model)return null;
+ const a=await model.predict(el);let b=a[0];
+ for(const x of a)if(x.probability>b.probability)b=x;
+ return{c:cat(b.className),n:b.className,p:b.probability,d:false};
+}
+function showResult(r){
+ const box=$("#res");
+ if(!r){box.innerHTML=`<p class="mu">${t(model||demo?"idle":"nomodel")}</p>`;return}
+ const pct=(r.p*100).toFixed(0)+"%", tag=r.d?`<i class="tag">${t("fake")}</i>`:"";
+ if(r.p<THRESHOLD){box.innerHTML=`<div class="row"><b>${t("unsure")}</b>${tag}</div><p class="mu">${t("conf")}: ${pct}</p>`;return}
+ const name=r.c==="unknown"?esc(r.n):t(r.c);
+ box.innerHTML=`<div class="row"><span class="dot" style="background:var(--${r.c})"></span><span class="big">${name}</span>${tag}</div>
+ <p class="mu">${t("conf")}: ${pct}</p>`+(r.c==="unknown"?"":`<p class="gd"><b>${t("guide")}</b><br>${t("g_"+r.c)}</p>`);
+}
+
+/* Lịch sử và thống kê */
+function thumb(el){
+ const w=el.videoWidth||el.naturalWidth||el.width,h=el.videoHeight||el.naturalHeight||el.height,s=Math.min(w,h),c=document.createElement("canvas");
+ c.width=c.height=96;c.getContext("2d").drawImage(el,(w-s)/2,(h-s)/2,s,s,0,0,96,96);return c.toDataURL("image/jpeg",.6);
+}
+function save(r,el){
+ const h=store.get("h",[]);
+ h.unshift({t:Date.now(),c:r.c,n:r.n,p:r.p,d:r.d,i:thumb(el)});
+ store.set("h",h.slice(0,60));renderHist();renderStats();toast(t("saved"));
+}
+const when=ts=>new Date(ts).toLocaleString(lang==="vi"?"vi-VN":"en-GB",{dateStyle:"short",timeStyle:"short"});
+function renderHist(){
+ const h=store.get("h",[]);
+ $("#clr").hidden=!h.length;
+ $("#hl").innerHTML=h.length?h.map(x=>`<div class="hi"><img src="${x.i}" alt=""><div>
+  <b style="color:var(--${x.c})">${x.c==="unknown"?esc(x.n):t(x.c)}</b>${x.d?` <i class="tag">${t("fake")}</i>`:""}<br>
+  <span class="mu">${(x.p*100).toFixed(0)}% · ${when(x.t)}</span></div></div>`).join(""):`<p class="mu">${t("empty")}</p>`;
+}
+function renderStats(){
+ const h=store.get("h",[]).filter(x=>!x.d), n=h.length;
+ if(!n){$("#sl").innerHTML=`<p class="mu">${t("empty")}</p><p class="mu">${t("note")}</p>`;return}
+ const avg=h.reduce((s,x)=>s+x.p,0)/n*100;
+ const rows=["organic","recycle","other","unknown"].map(c=>[c,h.filter(x=>x.c===c).length]).filter(r=>r[1]||r[0]!=="unknown");
+ $("#sl").innerHTML=`<div class="card"><div class="num">${n}</div><p class="mu">${t("total")}</p></div>
+ <div class="card">`+rows.map(([c,k])=>`<div class="row" style="justify-content:space-between"><span>${t(c)}</span><span class="mu">${k} · ${(k/n*100).toFixed(0)}%</span></div>
+ <div class="bar"><i style="width:${k/n*100}%;background:var(--${c})"></i></div>`).join("")+`</div>
+ <div class="card"><div class="num">${avg.toFixed(0)}%</div><p class="mu">${t("avg")}</p></div><p class="mu">${t("note")}</p>`;
+}
+
+/* Sự kiện */
+$("#cam").onclick=startCam;
+$$(".seg button").forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+$("#lang").onclick=()=>{lang=lang==="vi"?"en":"vi";store.set("lang",lang);applyLang()};
+$("#main").onclick=async()=>{
+ if(frozen){unfreeze();return}
+ if(mode==="live"){if(last&&last.p>=THRESHOLD)save(last,vid);return}
+ if(!stream)return;
+ const c=document.createElement("canvas");c.width=vid.videoWidth;c.height=vid.videoHeight;
+ c.getContext("2d").drawImage(vid,0,0);freeze(c.toDataURL("image/jpeg",.85));
+ const r=await predict(c);last=r;showResult(r);
+ if(r&&r.p>=THRESHOLD)save(r,c);
+};
+fr.onclick=()=>{if(frozen)unfreeze()};
+$("#up").onclick=()=>$("#file").click();
+$("#file").onchange=e=>{
+ const f=e.target.files[0];if(!f)return;
+ fr.onload=async()=>{fr.onload=null;const r=await predict(fr);last=r;showResult(r);if(r&&r.p>=THRESHOLD)save(r,fr)};
+ liveOn=false;frozen=true;fr.src=URL.createObjectURL(f);fr.hidden=false;setMain();e.target.value="";
+};
+$("#demo").onchange=e=>{demo=e.target.checked;last=null;showResult(null);go()};
+$("#load").onclick=async()=>{
+ let u=$("#url").value.trim();if(!u)return;if(!u.endsWith("/"))u+="/";
+ $("#ms").textContent=t("loading");
+ try{
+  model=await tmImage.load(u+"model.json",u+"metadata.json");
+  store.set("mu",u);
+  $("#ms").textContent=t("loaded")+": "+model.getClassLabels().join(", ");
+  last=null;showResult(null);
+ }catch(e){model=null;$("#ms").textContent=t("err")+": "+e.message}
+};
+$("#clr").onclick=()=>{store.set("h",[]);renderHist();renderStats()};
+$$("nav button").forEach(b=>b.onclick=()=>{
+ $$("nav button").forEach(x=>x.classList.toggle("on",x===b));
+ $$(".pg").forEach(p=>p.classList.toggle("on",p.id==="p-"+b.dataset.p));
+});
+
+/* Khởi động */
+const u0=MODEL_URL||store.get("mu","");
+if(u0){$("#url").value=u0;$("#load").click()}
+setMode("live");applyLang();
+</script>
+</body>
+</html>
